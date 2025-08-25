@@ -25,9 +25,9 @@ class FakeRouteCreate(BaseModel):
 	methods: List[str]
 
 def register_fake_route(app, fake):
-	# require new key 'return'
+	# require new key \'return\'
 	if fake.get("return") is None:
-		raise ValueError("Rota inválida: campo 'return' obrigatório")
+		raise ValueError("Rota inválida: campo \'return\' obrigatório")
 	return_value = fake.get("return")
 	status_code = fake.get("status_code", 200)
 	headers = fake.get("headers")
@@ -51,7 +51,7 @@ def register_fake_route(app, fake):
 
 @router.post("/populate-fakes", tags=["Admin"])
 async def populate_fakes(fakes: List[FakeRouteCreate] = Body(...)):
-	# write using alias so file contains the external field name 'return'
+	# write using alias so file contains the external field name \'return\'
 	fakes = [fake.dict(by_alias=True) for fake in fakes]
 	existing_fakes = []
 	if os.path.exists(config.FAKES_FILE): # Usando config.FAKES_FILE
@@ -68,6 +68,11 @@ async def populate_fakes(fakes: List[FakeRouteCreate] = Body(...)):
 	from app.main import app
 	for fake in fakes:
 		register_fake_route(app, fake)
+
+	# Força a atualização do esquema OpenAPI para o Swagger UI
+	app.openapi_schema = None
+	app.setup()
+
 	return {"message": "Rotas fakes adicionadas e registradas", "count": len(fakes)}
 
 @router.delete("/fake/{path}", tags=["Admin"], status_code=status.HTTP_204_NO_CONTENT)
@@ -81,6 +86,11 @@ async def delete_fake_route(path: str = Path(..., description="Path da rota a se
 		new_fakes = [fake for fake in fakes if fake.get("name") != norm_path]
 		async with aiofiles.open(config.FAKES_FILE, "w") as f: # Usando config.FAKES_FILE
 			await f.write(json.dumps(new_fakes, indent=2))
+
+	# Força a atualização do esquema OpenAPI para o Swagger UI
+	from app.main import app # Importe app novamente se não estiver no escopo
+	app.openapi_schema = None
+	app.setup()
 
 
 @router.get("/fakes", tags=["Admin"])
