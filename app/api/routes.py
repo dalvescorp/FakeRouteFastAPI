@@ -78,7 +78,17 @@ async def populate_fakes(fakes: List[FakeRouteCreate] = Body(...)):
 @router.delete("/fake/{path}", tags=["Admin"], status_code=status.HTTP_204_NO_CONTENT)
 async def delete_fake_route(path: str = Path(..., description="Path da rota a ser removida")):
 	norm_path = normalize_path(path)
-	route_service.remove_route(norm_path)
+	
+	# Remova a rota do FastAPI
+	from app.main import app # Importe app
+	for i, route in enumerate(app.routes):
+		if hasattr(route, "path") and route.path == norm_path:
+			del app.routes[i]
+			break
+
+	# Remova a rota da persistência (seu fakes.json)
+	route_service.remove_route(norm_path) # Isso ainda é importante para manter o fakes.json atualizado
+
 	if os.path.exists(config.FAKES_FILE): # Usando config.FAKES_FILE
 		async with aiofiles.open(config.FAKES_FILE, "r") as f: # Usando config.FAKES_FILE
 			content = await f.read()
@@ -88,10 +98,8 @@ async def delete_fake_route(path: str = Path(..., description="Path da rota a se
 			await f.write(json.dumps(new_fakes, indent=2))
 
 	# Força a atualização do esquema OpenAPI para o Swagger UI
-	from app.main import app # Importe app novamente se não estiver no escopo
 	app.openapi_schema = None
 	app.setup()
-
 
 @router.get("/fakes", tags=["Admin"])
 async def list_fakes():
