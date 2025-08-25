@@ -1,14 +1,15 @@
 import base64
-from fastapi import FastAPI, Request
-from starlette.responses import Response
 import asyncio
+import json
+import os
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from starlette.responses import Response
+import aiofiles
 
 from app.core.config import config
 from app.api.routes import router
-
-import os
-import aiofiles
-import json
 
 app = FastAPI(title=config.API_TITLE)
 app.include_router(router)
@@ -34,48 +35,44 @@ async def docs_basic_auth_middleware(request: Request, call_next):
     return await call_next(request)
 
 
+def make_fake_endpoint(return_value, status_code, headers, delay):
+    async def endpoint():
+        if delay:
+            await asyncio.sleep(delay)
+        response_headers = headers or {}
+        return JSONResponse(content=return_value, status_code=status_code, headers=response_headers)
+    return endpoint
+
+
 async def load_and_register_fakes():
     FAKES_FILE = config.FAKES_FILE
 
-    # 🔐 Garante que o diretório exista
     os.makedirs(os.path.dirname(FAKES_FILE), exist_ok=True)
 
-    # 📄 Cria o arquivo vazio se não existir
     if not os.path.exists(FAKES_FILE):
         async with aiofiles.open(FAKES_FILE, "w") as f:
             await f.write("[]")
 
-    # 📖 Lê conteúdo do JSON
     async with aiofiles.open(FAKES_FILE, "r") as f:
         content = await f.read()
         fakes = json.loads(content or "[]")
 
-    # 🚀 Registra as rotas dinamicamente
     for fake in fakes:
-        if "methods" not in fake:
-            raise ValueError(f"Campo obrigatório 'methods' ausente na rota: {fake.get('name', '<sem nome>')}")
+        name = fake.get("name")
+        methods = fake.get("methods", ["GET"])
+        return_value = fake.get("return", {})
+        status_code = fake.get("status_code", 200)
+        headers = fake.get("headers", {})
+        delay = fake.get("delay", 0.0)
 
-        if fake.get("return") is None:
-            raise ValueError(f"Rota inválida: campo 'return' ausente na rota: {fake.get('name', '<sem nome>')}")
+        if not name or not return_value:
+            print(f"[⚠️] Ignorando rota inválida: {fake}")
+            continue
 
-        def make_fake_endpoint(return_value, status_code, headers, delay):
-            async def endpoint():
-                if delay:
-                    await asyncio.sleep(delay)
-                response_headers = headers or {}
-                return __import__("fastapi").responses.JSONResponse(content=return_value, status_code=status_code, headers=response_headers)
-            return endpoint
-
-        return_value = fake["return"]
         app.add_api_route(
-            fake["name"],
-            make_fake_endpoint(
-                return_value,
-                fake.get("status_code", 200),
-                fake.get("headers"),
-                fake.get("delay", 0.0)
-            ),
-            methods=fake["methods"],
+            name,
+            endpoint=make_fake_endpoint(return_value, status_code, headers, delay),
+            methods=methods,
             response_model=dict,
             tags=["Fake"]
         )
