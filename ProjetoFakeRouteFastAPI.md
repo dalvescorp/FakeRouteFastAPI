@@ -36,7 +36,8 @@ Formato do `app/fakes.json`
    - `delay`: atraso em segundos antes de responder
    - `methods`: lista de métodos HTTP (ex.: `["GET"]` ou `["GET","POST"]`)
 
-Exemplo de entrada (adicione ao array em `app/fakes.json`):
+
+Exemplo de entrada (adicione ao array em `app/fakes.json` ou envie para `/populate-fakes`):
 
 ```json
 {
@@ -47,7 +48,9 @@ Exemplo de entrada (adicione ao array em `app/fakes.json`):
     "mensagem": "Esta é uma resposta fake personalizada!"
   },
   "status_code": 201,
-  "headers": { "X-Custom-Header": "valor" },
+  "headers": {
+    "X-Custom-Header": "valor"
+  },
   "delay": 1.0,
   "methods": ["GET"]
 }

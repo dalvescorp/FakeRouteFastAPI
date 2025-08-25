@@ -24,6 +24,24 @@ class FakeRouteCreate(BaseModel):
 	delay: float = 0.0
 	methods: List[str]
 
+	class Config:
+		json_schema_extra = {
+			"example": {
+				"name": "/meu-exemplo",
+				"return": {
+					"status": "ok",
+					"dados": [1, 2, 3],
+					"mensagem": "Esta é uma resposta fake personalizada!"
+				},
+				"status_code": 201,
+				"headers": {
+					"X-Custom-Header": "valor"
+				},
+				"delay": 1.0,
+				"methods": ["GET"]
+			}
+		}
+
 def register_fake_route(app, fake):
 	# require new key \'return\'
 	if fake.get("return") is None:
