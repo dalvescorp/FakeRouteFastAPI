@@ -18,7 +18,7 @@ USERNAME = config.SWAGGER_USERNAME
 PASSWORD = config.SWAGGER_PASSWORD
 
 
-@app.middleware("http")
+@app.middleware("http" )
 async def docs_basic_auth_middleware(request: Request, call_next):
     if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
         auth = request.headers.get("Authorization")
@@ -76,6 +76,10 @@ async def load_and_register_fakes():
             response_model=dict,
             tags=["Fake"]
         )
+    
+    # Força a atualização do esquema OpenAPI para o Swagger UI
+    app.openapi_schema = None
+    app.setup()
 
 @app.on_event("startup")
 async def on_startup():
