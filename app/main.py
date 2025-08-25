@@ -77,7 +77,6 @@ async def load_and_register_fakes():
             tags=["Fake"]
         )
 
-
 @app.on_event("startup")
 async def on_startup():
     await load_and_register_fakes()

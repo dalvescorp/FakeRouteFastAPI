@@ -1,5 +1,3 @@
-
-
 import json
 import os
 import aiofiles
@@ -9,8 +7,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import Any, Dict, Optional, List
 from app.services.route_service import route_service
+from app.core.config import config # Importando o config
 
-FAKES_FILE = os.path.join(os.path.dirname(__file__), "../fakes.json")
+# FAKES_FILE = os.path.join(os.path.dirname(__file__), "../fakes.json") # Linha removida/comentada
 router = APIRouter()
 
 def normalize_path(path: str) -> str:
@@ -55,15 +54,15 @@ async def populate_fakes(fakes: List[FakeRouteCreate] = Body(...)):
 	# write using alias so file contains the external field name 'return'
 	fakes = [fake.dict(by_alias=True) for fake in fakes]
 	existing_fakes = []
-	if os.path.exists(FAKES_FILE):
-		async with aiofiles.open(FAKES_FILE, "r") as f:
+	if os.path.exists(config.FAKES_FILE): # Usando config.FAKES_FILE
+		async with aiofiles.open(config.FAKES_FILE, "r") as f: # Usando config.FAKES_FILE
 			content = await f.read()
 			try:
 				existing_fakes = json.loads(content)
 			except Exception:
 				existing_fakes = []
 	all_fakes = existing_fakes + fakes
-	async with aiofiles.open(FAKES_FILE, "w") as f:
+	async with aiofiles.open(config.FAKES_FILE, "w") as f: # Usando config.FAKES_FILE
 		await f.write(json.dumps(all_fakes, indent=2))
 	# Registro dinâmico
 	from app.main import app
@@ -75,19 +74,19 @@ async def populate_fakes(fakes: List[FakeRouteCreate] = Body(...)):
 async def delete_fake_route(path: str = Path(..., description="Path da rota a ser removida")):
 	norm_path = normalize_path(path)
 	route_service.remove_route(norm_path)
-	if os.path.exists(FAKES_FILE):
-		async with aiofiles.open(FAKES_FILE, "r") as f:
+	if os.path.exists(config.FAKES_FILE): # Usando config.FAKES_FILE
+		async with aiofiles.open(config.FAKES_FILE, "r") as f: # Usando config.FAKES_FILE
 			content = await f.read()
 			fakes = json.loads(content)
 		new_fakes = [fake for fake in fakes if fake.get("name") != norm_path]
-		async with aiofiles.open(FAKES_FILE, "w") as f:
+		async with aiofiles.open(config.FAKES_FILE, "w") as f: # Usando config.FAKES_FILE
 			await f.write(json.dumps(new_fakes, indent=2))
 
 
 @router.get("/fakes", tags=["Admin"])
 async def list_fakes():
-    if os.path.exists(FAKES_FILE):
-        async with aiofiles.open(FAKES_FILE, "r") as f:
+    if os.path.exists(config.FAKES_FILE): # Usando config.FAKES_FILE
+        async with aiofiles.open(config.FAKES_FILE, "r") as f: # Usando config.FAKES_FILE
             content = await f.read()
             try:
                 return json.loads(content)
