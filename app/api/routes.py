@@ -83,3 +83,14 @@ async def delete_fake_route(path: str = Path(..., description="Path da rota a se
 		async with aiofiles.open(FAKES_FILE, "w") as f:
 			await f.write(json.dumps(new_fakes, indent=2))
 
+
+@router.get("/fakes", tags=["Admin"])
+async def list_fakes():
+    if os.path.exists(FAKES_FILE):
+        async with aiofiles.open(FAKES_FILE, "r") as f:
+            content = await f.read()
+            try:
+                return json.loads(content)
+            except:
+                return []
+    return []
